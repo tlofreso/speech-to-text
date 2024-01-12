@@ -5,6 +5,7 @@ app_secret
 config.json
 *.m4a
 *.txt
+!requirements.txt
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
