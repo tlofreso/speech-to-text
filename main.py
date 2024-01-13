@@ -26,31 +26,34 @@ dropbox_client = dropbox.Dropbox(app_key=
 AUDIO_PATH = "voice-memos"
 TEXT_PATH = "text-transcripts"
 
-def get_filename(path):
+def get_filenames(path):
+    filenames = []
     print("Getting files...")
     files = dropbox_client.files_list_folder(path=f"/{path}")
     if len(files.entries) < 1:
         print("no files found")
         sys.exit()
-    filename = files.entries[0].name
-    print(f"found: {filename}")
-    return filename
+    for file in files.entries:
+        filenames.append(file.name)
 
-def download_file(path, file):
-    print(f"Downloading file: {file}...")
-    dropbox_client.files_download_to_file(file, f"/{path}/{file}")
+    print(f"Found {len(files.entries)} files...")
+    return filenames
+
+def download_files(path, files):
+    for file in files:
+        print(f"Downloading audio files...")
+        dropbox_client.files_download_to_file(file, f"/{path}/{file}")
     print("Done.")
 
 def upload_file(path, file):
-    print(f"Uploading file: {file}...")
+    print(f"Uploading text file...")
     with open(file, "rb") as f:
         data = f.read()
     dropbox_client.files_upload(data, path=f"/{path}/{file}")
 
 def delete_file(path, file):
-    print(f"Deleting file: {file}...")
+    print(f"Deleting audio file...")
     dropbox_client.files_delete(f"/{path}/{file}")
-    print("Done.")
 
 def transcribe_audio(file):
     print("Starting transcribe...")
@@ -58,7 +61,6 @@ def transcribe_audio(file):
         transcript = openai_client.audio.transcriptions.create(model = "whisper-1", file=file)
     
     out_file = file.name.split('.')[0] + ".txt"
-    print(f"writing to {out_file}...")
     with open(f"{out_file}", "w") as output_file:
         output_file.write(transcript.text)
     
@@ -68,10 +70,14 @@ def transcribe_audio(file):
 
 if __name__ == "__main__":
 
-    audio_file = get_filename(AUDIO_PATH)
-    download_file(AUDIO_PATH, audio_file)
-    out_file = transcribe_audio(audio_file)
-    upload_file(TEXT_PATH, out_file)
-    delete_file(AUDIO_PATH, audio_file)
+    audio_files = get_filenames(AUDIO_PATH)
+    download_files(AUDIO_PATH, audio_files)
+
+    for file in audio_files:
+        out_file = transcribe_audio(file)
+        upload_file(TEXT_PATH, out_file)
+        delete_file(AUDIO_PATH, file)
+    
+    print("Done.")
 
 
