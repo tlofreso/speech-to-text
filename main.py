@@ -2,6 +2,10 @@ from openai import OpenAI
 import dropbox
 import os, sys, json
 from rich import print
+from pydub import AudioSegment
+from pydub.utils import make_chunks
+from meeting_notes import meeting_minutes
+from docx import Document
 
 def get_config():
     required_vars = ["DROPBOX_APP_KEY", "DROPBOX_APP_SECRET", "DROPBOX_REFRESH_TOKEN", "OPENAI_API_KEY"]
@@ -55,18 +59,40 @@ def delete_file(path, file):
     print(f"Deleting audio file...")
     dropbox_client.files_delete(f"/{path}/{file}")
 
-def transcribe_audio(file):
+def transcribe_audio(file, prompt=None):
     print("Starting transcribe...")
     with open(file, "rb") as file:
-        transcript = openai_client.audio.transcriptions.create(model = "whisper-1", file=file)
+        transcript = openai_client.audio.transcriptions.create(model = "whisper-1", file=file, prompt=prompt)
     
-    out_file = file.name.split('.')[0] + ".txt"
-    with open(f"{out_file}", "w") as output_file:
-        output_file.write(transcript.text)
+    return transcript.text
+
+def chunk_audio(chunk_mins, file):
+    print("Chunking audio...")
+
+    chunks_out = []
+
+    audio = AudioSegment.from_file(file)
+    chunk_size = chunk_mins * 60 * 1000
+    chunks = make_chunks(audio, chunk_size)
+    for i, chunk in enumerate(chunks):
+        audio_out = f'{i}.mp3'
+        chunk.export(audio_out, format='mp3')
+        chunks_out.append(audio_out)
     
-    return out_file
+    print(f"Chunked into {len(chunks_out)} files...")
+    return(chunks_out)
 
 
+def save_as_docx(minutes, filename):
+    doc = Document()
+    for key, value in minutes.items():
+        # Replace underscores with spaces and capitalize each word for the heading
+        heading = ' '.join(word.capitalize() for word in key.split('_'))
+        doc.add_heading(heading, level=1)
+        doc.add_paragraph(value)
+        # Add a line break between sections
+        doc.add_paragraph()
+    doc.save(filename)
 
 if __name__ == "__main__":
 
@@ -74,10 +100,31 @@ if __name__ == "__main__":
     download_files(AUDIO_PATH, audio_files)
 
     for file in audio_files:
-        out_file = transcribe_audio(file)
-        upload_file(TEXT_PATH, out_file)
+
+        chunks = chunk_audio(40, file)
+        transcripts = ['']
+
+        for chunk in chunks:
+            transcript = transcribe_audio(chunk, transcripts[-1])
+            transcripts.append(transcript)
+
+        out_txt = file.split('.')[0] + ".txt"
+        with open(f"{out_txt}", "w") as output_file:
+            output_file.write(' '.join(transcripts))
+        
+        print(f"Wrote {out_txt}...")
+        
+        out_docx = file.split('.')[0] + ".docx"
+        with open(out_txt, "r") as full_transcript:
+            notes = meeting_minutes(full_transcript.read())
+        
+        save_as_docx(notes, out_docx)
+        
+        upload_file(f"{TEXT_PATH}/{file.split('.')[0]}", out_txt)
+        upload_file(f"{TEXT_PATH}/{file.split('.')[0]}", out_docx)
         delete_file(AUDIO_PATH, file)
     
     print("Done.")
 
+    
 
