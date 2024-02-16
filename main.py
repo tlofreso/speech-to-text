@@ -101,7 +101,7 @@ if __name__ == "__main__":
 
     for file in audio_files:
 
-        chunks = chunk_audio(40, file)
+        chunks = chunk_audio(30, file)
         transcripts = ['']
 
         for chunk in chunks:
