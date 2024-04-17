@@ -2,7 +2,7 @@ name: Speech to Text Runner
 run-name: Transcribe audio file to text
 on:
   schedule:
-      - cron: '0 17 * * *'
+      - cron: '0 * * * *'
   workflow_dispatch:
 env:
   DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
