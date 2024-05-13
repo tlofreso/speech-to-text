@@ -34,7 +34,7 @@ def meeting_minutes(transcription):
 
 def abstract_summary_extraction(transcription):
     response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         temperature=0,
         messages=[
             {
@@ -52,7 +52,7 @@ def abstract_summary_extraction(transcription):
 
 def key_points_extraction(transcription):
     response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         temperature=0,
         messages=[
             {
@@ -70,7 +70,7 @@ def key_points_extraction(transcription):
 
 def action_item_extraction(transcription):
     response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         temperature=0,
         messages=[
             {
@@ -88,7 +88,7 @@ def action_item_extraction(transcription):
 
 def sentiment_analysis(transcription):
     response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4o",
         temperature=0,
         messages=[
             {
