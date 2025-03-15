@@ -53,11 +53,21 @@ def upload_file(path, file):
     print(f"Uploading text file...")
     with open(file, "rb") as f:
         data = f.read()
-    dropbox_client.files_upload(data, path=f"/{path}/{file}")
+    # Use overwrite mode to handle existing files
+    dropbox_client.files_upload(data, path=f"/{path}/{file}", mode=dropbox.files.WriteMode.overwrite)
 
 def delete_file(path, file):
     print(f"Deleting audio file...")
     dropbox_client.files_delete(f"/{path}/{file}")
+
+def check_file_exists(path, file):
+    """Check if a file exists in Dropbox."""
+    try:
+        dropbox_client.files_get_metadata(f"/{path}/{file}")
+        return True
+    except dropbox.exceptions.ApiError as e:
+        # If error is "not_found", file doesn't exist
+        return False
 
 def transcribe_audio(file, prompt=None):
     print("Starting transcribe...")
@@ -100,6 +110,17 @@ if __name__ == "__main__":
     download_files(AUDIO_PATH, audio_files)
 
     for file in audio_files:
+        out_txt = file.split('.')[0] + ".txt"
+        out_docx = file.split('.')[0] + ".docx"
+        
+        # Check if both output files already exist
+        txt_exists = check_file_exists(f"{TEXT_PATH}/{file.split('.')[0]}", out_txt)
+        docx_exists = check_file_exists(f"{TEXT_PATH}/{file.split('.')[0]}", out_docx)
+        
+        if txt_exists and docx_exists:
+            print(f"Transcripts for {file} already exist. Skipping processing and deleting audio file.")
+            delete_file(AUDIO_PATH, file)
+            continue
 
         chunks = chunk_audio(20, file)
         transcripts = ['']
@@ -108,13 +129,11 @@ if __name__ == "__main__":
             transcript = transcribe_audio(chunk, transcripts[-1])
             transcripts.append(transcript)
 
-        out_txt = file.split('.')[0] + ".txt"
         with open(f"{out_txt}", "w") as output_file:
             output_file.write(' '.join(transcripts))
         
         print(f"Wrote {out_txt}...")
         
-        out_docx = file.split('.')[0] + ".docx"
         with open(out_txt, "r") as full_transcript:
             notes = meeting_minutes(full_transcript.read())
         
@@ -125,6 +144,3 @@ if __name__ == "__main__":
         delete_file(AUDIO_PATH, file)
     
     print("Done.")
-
-    
-
