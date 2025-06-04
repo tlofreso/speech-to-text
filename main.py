@@ -1,6 +1,7 @@
 from openai import OpenAI
 import dropbox
-import os, sys, json
+import os
+import sys
 from rich import print
 from pydub import AudioSegment
 from pydub.utils import make_chunks
@@ -45,19 +46,19 @@ def get_filenames(path):
 
 def download_files(path, files):
     for file in files:
-        print(f"Downloading audio files...")
+        print("Downloading audio files...")
         dropbox_client.files_download_to_file(file, f"/{path}/{file}")
     print("Done.")
 
 def upload_file(path, file):
-    print(f"Uploading text file...")
+    print("Uploading text file...")
     with open(file, "rb") as f:
         data = f.read()
     # Use overwrite mode to handle existing files
     dropbox_client.files_upload(data, path=f"/{path}/{file}", mode=dropbox.files.WriteMode.overwrite)
 
 def delete_file(path, file):
-    print(f"Deleting audio file...")
+    print("Deleting audio file...")
     dropbox_client.files_delete(f"/{path}/{file}")
 
 def check_file_exists(path, file):
@@ -65,7 +66,7 @@ def check_file_exists(path, file):
     try:
         dropbox_client.files_get_metadata(f"/{path}/{file}")
         return True
-    except dropbox.exceptions.ApiError as e:
+    except dropbox.exceptions.ApiError:
         # If error is "not_found", file doesn't exist
         return False
 

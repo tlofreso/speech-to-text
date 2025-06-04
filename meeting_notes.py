@@ -1,6 +1,6 @@
 from openai import OpenAI
-import os, sys, json
-from rich import print
+import os
+import sys
 
 
 def get_config():
